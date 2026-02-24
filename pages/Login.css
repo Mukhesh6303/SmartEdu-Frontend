@@ -1,0 +1,102 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #e6e6e6;
+}
+
+.login-wrapper {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-card {
+  width: 700px;
+  background: #f4f4f4;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  padding-bottom: 30px;
+}
+
+.login-header {
+  background: #b30000;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.login-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.login-header p {
+  margin: 5px 0 0;
+  font-size: 12px;
+}
+
+.login-form {
+  padding: 60px;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: none;
+  background: #ddd;
+  font-size: 14px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #b30000;
+  color: white;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.login-btn:hover {
+  background: #8c0000;
+}
+
+.forgot-password {
+  margin-top: 15px;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.role-select {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: none;
+  background: #ddd;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.toggle-auth {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+  color: #333;
+}
+
+.toggle-link {
+  background: none;
+  border: none;
+  color: #b30000;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 5px;
+  text-decoration: underline;
+}
+
+.toggle-link:hover {
+  color: #8c0000;
+}
