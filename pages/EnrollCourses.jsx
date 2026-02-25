@@ -29,16 +29,6 @@ export const EnrollCourses = () => {
     alert('Enrolled Successfully!');
   };
 
-  const unenroll = (courseId) => {
-    if (window.confirm('Are you sure you want to unenroll from this course?')) {
-      const updatedEnrolled = enrolled.filter(c => c.id !== courseId);
-      localStorage.setItem('enrolled', JSON.stringify(updatedEnrolled));
-      setEnrolled(updatedEnrolled);
-      setRefreshKey(refreshKey + 1);
-      alert('Unenrolled Successfully!');
-    }
-  };
-
   const availableCourses = courses.filter(
     course => !enrolled.find(e => e.id === course.id)
   );
@@ -66,13 +56,6 @@ export const EnrollCourses = () => {
                       <p className='enrolled-course-code'>{course.code}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => unenroll(course.id)}
-                    className='btn btn-unenroll'
-                    title='Unenroll from this course'
-                  >
-                    ✕ Unenroll
-                  </button>
                 </div>
                 <p className='enrolled-course-description'>{course.description}</p>
                 <div className='enrolled-course-meta'>

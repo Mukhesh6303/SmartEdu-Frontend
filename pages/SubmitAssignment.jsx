@@ -7,6 +7,13 @@ export default function SubmitAssignment() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingSubmissionId, setEditingSubmissionId] = useState(null);
   const [editDescription, setEditDescription] = useState('');
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [dragActive, setDragActive] = useState(false);
+  const [viewMode, setViewMode] = useState('grid');
+  const [editFiles, setEditFiles] = useState([]);
+  const [showEditFilesModal, setShowEditFilesModal] = useState(false);
 
   useEffect(() => {
     setAssignments(JSON.parse(localStorage.getItem('assignments') || '[]'));
@@ -14,32 +21,166 @@ export default function SubmitAssignment() {
     setSubmissions(JSON.parse(localStorage.getItem('submissions') || '[]'));
   }, [refreshKey]);
 
-  const submit = (assignment) => {
-    const alreadySubmitted = submissions.find(s => s.id === assignment.id);
+  const openSubmitModal = (assignment) => {
+    setSelectedAssignment(assignment);
+    setShowSubmitModal(true);
+    setSelectedFiles([]);
+  };
+
+  const closeSubmitModal = () => {
+    setShowSubmitModal(false);
+    setSelectedAssignment(null);
+    setSelectedFiles([]);
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    validateAndAddFiles(files);
+  };
+
+  const validateAndAddFiles = (files) => {
+    const maxFiles = 2;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
+    
+    if (selectedFiles.length + files.length > maxFiles) {
+      alert(`Maximum ${maxFiles} files allowed`);
+      return;
+    }
+
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        alert(`${file.name} is not a PDF or JPG file`);
+        return false;
+      }
+      if (file.size > maxSize) {
+        alert(`${file.name} exceeds 5MB limit`);
+        return false;
+      }
+      return true;
+    });
+
+    setSelectedFiles([...selectedFiles, ...validFiles]);
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    validateAndAddFiles(files);
+  };
+
+  const removeFile = (index) => {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const submit = () => {
+    if (!selectedAssignment) return;
+
+    const alreadySubmitted = submissions.find(s => s.id === selectedAssignment.id);
     if (alreadySubmitted) {
       alert('You have already submitted this assignment');
+      closeSubmitModal();
       return;
     }
 
     const newSubmission = {
-      ...assignment,
+      ...selectedAssignment,
       submissionId: Date.now(),
       submittedAt: new Date().toISOString(),
       marks: null,
       studentName: JSON.parse(localStorage.getItem('user'))?.email || 'Student',
-      submissionNotes: ''
+      submissionNotes: '',
+      files: selectedFiles.map(f => ({ name: f.name, size: f.size, type: f.type }))
     };
 
     const updatedSubmissions = [...submissions, newSubmission];
     localStorage.setItem('submissions', JSON.stringify(updatedSubmissions));
     
     alert('Assignment Submitted Successfully!');
+    closeSubmitModal();
     setRefreshKey(refreshKey + 1);
   };
 
   const startEdit = (submission) => {
     setEditingSubmissionId(submission.submissionId);
     setEditDescription(submission.submissionNotes || '');
+    setEditFiles(submission.files || []);
+    setShowEditFilesModal(true);
+  };
+
+  const closeEditFilesModal = () => {
+    setShowEditFilesModal(false);
+    setEditingSubmissionId(null);
+    setEditFiles([]);
+    setEditDescription('');
+  };
+
+  const handleEditFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    validateAndAddEditFiles(files);
+  };
+
+  const validateAndAddEditFiles = (files) => {
+    const maxFiles = 2;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
+    
+    if (editFiles.length + files.length > maxFiles) {
+      alert(`Maximum ${maxFiles} files allowed`);
+      return;
+    }
+
+    const validFiles = files.filter(file => {
+      if (!allowedTypes.includes(file.type)) {
+        alert(`${file.name} is not a PDF or JPG file`);
+        return false;
+      }
+      if (file.size > maxSize) {
+        alert(`${file.name} exceeds 5MB limit`);
+        return false;
+      }
+      return true;
+    });
+
+    const newFileObjects = validFiles.map(f => ({ name: f.name, size: f.size, type: f.type }));
+    setEditFiles([...editFiles, ...newFileObjects]);
+  };
+
+  const removeEditFile = (index) => {
+    setEditFiles(editFiles.filter((_, i) => i !== index));
+  };
+
+  const saveEditedFiles = () => {
+    const updatedSubmissions = submissions.map(s =>
+      s.submissionId === editingSubmissionId
+        ? { ...s, files: editFiles, submissionNotes: editDescription }
+        : s
+    );
+    localStorage.setItem('submissions', JSON.stringify(updatedSubmissions));
+    setSubmissions(updatedSubmissions);
+    closeEditFilesModal();
+    alert('Submission updated successfully!');
   };
 
   const saveEdit = (submission) => {
@@ -106,6 +247,22 @@ export default function SubmitAssignment() {
                             </span>
                           </div>
                           <p className='assignment-description'>{assignment.description}</p>
+                          {assignment.attachments && assignment.attachments.length > 0 && (
+                            <div className='assignment-attachments'>
+                              <strong>📎 Assignment Files:</strong>
+                              <div className='attachments-list'>
+                                {assignment.attachments.map((file, idx) => (
+                                  <div key={idx} className='attachment-item'>
+                                    <span className='attachment-icon'>
+                                      {file.type === 'application/pdf' ? '📄' : '🖼️'}
+                                    </span>
+                                    <span className='attachment-name'>{file.name}</span>
+                                    <span className='attachment-size'>({formatFileSize(file.size)})</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           {submission?.feedback && (
                             <div className='instructor-feedback-box'>
                               <div className='feedback-header-box'>📝 Instructor Feedback</div>
@@ -122,7 +279,7 @@ export default function SubmitAssignment() {
                           </div>
                         </div>
                         <button
-                          onClick={() => submit(assignment)}
+                          onClick={() => openSubmitModal(assignment)}
                           disabled={isSubmitted}
                           className={`btn ${isSubmitted ? 'btn-submitted' : 'btn-primary'}`}
                         >
@@ -194,6 +351,22 @@ export default function SubmitAssignment() {
                           <strong>Notes:</strong> {submission.submissionNotes}
                         </div>
                       )}
+                      {submission.files && submission.files.length > 0 && (
+                        <div className='submission-files-display'>
+                          <strong>Attached Files:</strong>
+                          <div className='files-preview'>
+                            {submission.files.map((file, idx) => (
+                              <div key={idx} className='file-preview-item'>
+                                <span className='file-icon-small'>
+                                  {file.type === 'application/pdf' ? '📄' : '🖼️'}
+                                </span>
+                                <span className='file-name-small'>{file.name}</span>
+                                <span className='file-size-small'>({formatFileSize(file.size)})</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className='submission-actions'>
@@ -212,7 +385,7 @@ export default function SubmitAssignment() {
                               onClick={() => startEdit(submission)}
                               className='btn btn-edit-submission'
                             >
-                              ✎ Edit
+                              EDIT
                             </button>
                           </>
                         )}
@@ -222,6 +395,206 @@ export default function SubmitAssignment() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {showSubmitModal && (
+        <div className='modal-overlay' onClick={closeSubmitModal}>
+          <div className='modal-content' onClick={(e) => e.stopPropagation()}>
+            <div className='modal-header'>
+              <h2>Add submission</h2>
+              <button className='modal-close' onClick={closeSubmitModal}>×</button>
+            </div>
+
+            <div className='modal-body'>
+              <div className='submission-info-box'>
+                <h3>{selectedAssignment?.title}</h3>
+                <p>{selectedAssignment?.description}</p>
+              </div>
+
+              <div className='file-submission-section'>
+                <div className='section-label'>
+                  File submissions
+                  <span className='file-limits'>Maximum file size: 5 MB, maximum number of files: 2</span>
+                </div>
+
+                <div className='file-upload-area'>
+                  <div className='file-upload-toolbar'>
+                    <label className='file-input-label'>
+                      <input
+                        type='file'
+                        onChange={handleFileSelect}
+                        accept='.pdf,.jpg,.jpeg'
+                        multiple
+                        style={{ display: 'none' }}
+                      />
+                      <span className='toolbar-icon' title='Add files'>📄</span>
+                    </label>
+                    <span className='toolbar-icon' title='Create folder'>📁</span>
+                    <span className='toolbar-icon' title='Delete'>🗑️</span>
+                    <div className='view-toggle'>
+                      <span 
+                        className={`toolbar-icon ${viewMode === 'grid' ? 'active' : ''}`}
+                        onClick={() => setViewMode('grid')}
+                        title='Grid view'
+                      >
+                        ⊞
+                      </span>
+                      <span 
+                        className={`toolbar-icon ${viewMode === 'list' ? 'active' : ''}`}
+                        onClick={() => setViewMode('list')}
+                        title='List view'
+                      >
+                        ☰
+                      </span>
+                      <span 
+                        className={`toolbar-icon ${viewMode === 'detail' ? 'active' : ''}`}
+                        onClick={() => setViewMode('detail')}
+                        title='Detail view'
+                      >
+                        ≡
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className='files-tree'>
+                    <div className='folder-item'>
+                      <span className='folder-icon'>▶ 📁</span> Files
+                    </div>
+                  </div>
+
+                  <div
+                    className={`drop-zone ${dragActive ? 'drag-active' : ''}`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <div className='drop-zone-content'>
+                      <div className='drop-icon'>⬇️</div>
+                      <p>You can drag and drop files here to add them.</p>
+                    </div>
+                  </div>
+
+                  {selectedFiles.length > 0 && (
+                    <div className={`files-list ${viewMode}`}>
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className='file-item'>
+                          <div className='file-info'>
+                            <span className='file-icon'>
+                              {file.type === 'application/pdf' ? '📄' : '🖼️'}
+                            </span>
+                            <div className='file-details'>
+                              <span className='file-name'>{file.name}</span>
+                              <span className='file-size'>{formatFileSize(file.size)}</span>
+                            </div>
+                          </div>
+                          <button 
+                            className='remove-file-btn'
+                            onClick={() => removeFile(index)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className='modal-footer'>
+              <button className='btn btn-primary' onClick={submit}>
+                Save changes
+              </button>
+              <button className='btn btn-secondary' onClick={closeSubmitModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditFilesModal && (
+        <div className='modal-overlay' onClick={closeEditFilesModal}>
+          <div className='modal-content' onClick={(e) => e.stopPropagation()}>
+            <div className='modal-header'>
+              <h2>Edit Submission</h2>
+              <button className='modal-close' onClick={closeEditFilesModal}>×</button>
+            </div>
+
+            <div className='modal-body'>
+              <div className='edit-section'>
+                <label className='section-label'>Submission Notes:</label>
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder='Add or update your submission notes...'
+                  className='edit-textarea'
+                  rows='4'
+                />
+              </div>
+
+              <div className='file-submission-section'>
+                <div className='section-label'>
+                  Attached Files
+                  <span className='file-limits'>Maximum file size: 5 MB, maximum number of files: 2</span>
+                </div>
+
+                <div className='file-upload-area'>
+                  <div className='file-upload-toolbar'>
+                    <label className='file-input-label'>
+                      <input
+                        type='file'
+                        onChange={handleEditFileSelect}
+                        accept='.pdf,.jpg,.jpeg'
+                        multiple
+                        style={{ display: 'none' }}
+                      />
+                      <span className='toolbar-icon' title='Add files'>📄</span>
+                    </label>
+                  </div>
+
+                  {editFiles.length > 0 ? (
+                    <div className='files-list list'>
+                      {editFiles.map((file, index) => (
+                        <div key={index} className='file-item'>
+                          <div className='file-info'>
+                            <span className='file-icon'>
+                              {file.type === 'application/pdf' ? '📄' : '🖼️'}
+                            </span>
+                            <div className='file-details'>
+                              <span className='file-name'>{file.name}</span>
+                              <span className='file-size'>{formatFileSize(file.size)}</span>
+                            </div>
+                          </div>
+                          <button 
+                            className='remove-file-btn'
+                            onClick={() => removeEditFile(index)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className='no-files-notice'>
+                      <p>No files attached. Click the 📄 icon above to add files.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className='modal-footer'>
+              <button className='btn btn-primary' onClick={saveEditedFiles}>
+                Save changes
+              </button>
+              <button className='btn btn-secondary' onClick={closeEditFilesModal}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

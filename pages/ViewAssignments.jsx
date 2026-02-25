@@ -5,6 +5,7 @@ export default function ViewAssignments() {
   const [editingId, setEditingId] = useState(null);
   const [marksInput, setMarksInput] = useState({});
   const [feedbackInput, setFeedbackInput] = useState({});
+  const [viewingFiles, setViewingFiles] = useState(null);
 
   useEffect(() => {
     setSubmissions(JSON.parse(localStorage.getItem('submissions') || '[]'));
@@ -28,6 +29,22 @@ export default function ViewAssignments() {
     setFeedbackInput({ ...feedbackInput, [id]: currentFeedback || '' });
   };
 
+  const openFilesModal = (submission) => {
+    setViewingFiles(submission);
+  };
+
+  const closeFilesModal = () => {
+    setViewingFiles(null);
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
   return (
     <div className='view-submissions-container'>
       <div className='page-header'>
@@ -47,6 +64,7 @@ export default function ViewAssignments() {
             <div className='col-title'>Assignment Title</div>
             <div className='col-student'>Student Name</div>
             <div className='col-submitted'>Submitted At</div>
+            <div className='col-files'>Files</div>
             <div className='col-status'>Status</div>
             <div className='col-marks'>Marks</div>
             <div className='col-actions'>Actions</div>
@@ -60,6 +78,18 @@ export default function ViewAssignments() {
               <div className='col-student'>{s.studentName || 'Unknown'}</div>
               <div className='col-submitted'>
                 {new Date(s.submittedAt).toLocaleDateString()} {new Date(s.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <div className='col-files'>
+                {s.files && s.files.length > 0 ? (
+                  <button 
+                    className='btn btn-files btn-sm'
+                    onClick={() => openFilesModal(s)}
+                  >
+                    📎 {s.files.length} file{s.files.length > 1 ? 's' : ''}
+                  </button>
+                ) : (
+                  <span className='no-files-text'>No files</span>
+                )}
               </div>
               <div className='col-status'>
                 <span className={`status-badge ${s.marks ? 'graded' : 'pending'}`}>
@@ -123,6 +153,65 @@ export default function ViewAssignments() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {viewingFiles && (
+        <div className='modal-overlay' onClick={closeFilesModal}>
+          <div className='modal-content files-modal' onClick={(e) => e.stopPropagation()}>
+            <div className='modal-header'>
+              <div>
+                <h2>Submitted Files</h2>
+                <p className='modal-subtitle'>
+                  {viewingFiles.title} - {viewingFiles.studentName}
+                </p>
+              </div>
+              <button className='modal-close' onClick={closeFilesModal}>×</button>
+            </div>
+
+            <div className='modal-body'>
+              {viewingFiles.files && viewingFiles.files.length > 0 ? (
+                <div className='files-list-modal'>
+                  {viewingFiles.files.map((file, index) => (
+                    <div key={index} className='file-item-modal'>
+                      <div className='file-icon-large'>
+                        {file.type === 'application/pdf' ? (
+                          <div className='pdf-icon'>📄</div>
+                        ) : (
+                          <div className='image-icon'>🖼️</div>
+                        )}
+                      </div>
+                      <div className='file-details-modal'>
+                        <h4 className='file-name-modal'>{file.name}</h4>
+                        <div className='file-meta'>
+                          <span className='file-type'>{file.type === 'application/pdf' ? 'PDF Document' : 'JPG Image'}</span>
+                          <span className='file-size-modal'>{formatFileSize(file.size)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className='no-files-message'>
+                  <div className='empty-icon'>📭</div>
+                  <p>No files were submitted</p>
+                </div>
+              )}
+              
+              {viewingFiles.submissionNotes && (
+                <div className='submission-notes-section'>
+                  <h4>Student Notes:</h4>
+                  <p className='notes-content'>{viewingFiles.submissionNotes}</p>
+                </div>
+              )}
+            </div>
+
+            <div className='modal-footer'>
+              <button className='btn btn-secondary' onClick={closeFilesModal}>
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
