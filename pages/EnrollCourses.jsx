@@ -2,36 +2,46 @@ import { useState, useEffect } from 'react';
 
 export const EnrollCourses = () => {
   const [courses, setCourses] = useState([]);
-  const [enrolled, setEnrolled] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    setCourses(JSON.parse(localStorage.getItem('courses') || '[]'));
-    setEnrolled(JSON.parse(localStorage.getItem('enrolled') || '[]'));
+    fetch('http://localhost:8080/api/courses')
+      .then(res => res.json())
+      .then(data => setCourses(data))
+      .catch(console.error);
+      
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.email) {
+      fetch(`http://localhost:8080/api/enrollments/student/${user.email}`)
+        .then(res => res.json())
+        .then(data => setEnrollments(data))
+        .catch(console.error);
+    }
   }, [refreshKey]);
 
   const enroll = (course) => {
-    if (enrolled.find(c => c.id === course.id)) {
-      return alert('Already enrolled');
-    }
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    const studentId = user?.email || 'Student';
-    const updatedEnrolled = [
-      ...enrolled,
-      {
-        ...course,
-        studentName: studentId,
-        studentId
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.email) return alert('Please login first');
+    
+    fetch('http://localhost:8080/api/enrollments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentEmail: user.email, courseId: course.id })
+    })
+    .then(res => {
+      if (res.ok) {
+        alert('Enrolled Successfully!');
+        setRefreshKey(k => k + 1);
+      } else {
+        alert('Already enrolled or error');
       }
-    ];
-    localStorage.setItem('enrolled', JSON.stringify(updatedEnrolled));
-    setEnrolled(updatedEnrolled);
-    alert('Enrolled Successfully!');
+    })
+    .catch(console.error);
   };
 
-  const availableCourses = courses.filter(
-    course => !enrolled.find(e => e.id === course.id)
-  );
+  const enrolled = courses.filter(c => enrollments.some(e => e.courseId === c.id));
+  const availableCourses = courses.filter(c => !enrollments.some(e => e.courseId === c.id));
 
   return (
     <div className='enroll-courses-container'>

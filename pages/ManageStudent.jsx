@@ -4,7 +4,16 @@ export default function ManageStudents() {
   const [enrolled, setEnrolled] = useState([]);
 
   useEffect(() => {
-    setEnrolled(JSON.parse(localStorage.getItem('enrolled') || '[]'));
+    Promise.all([
+      fetch('http://localhost:8080/api/enrollments').then(r => r.json()),
+      fetch('http://localhost:8080/api/courses').then(r => r.json())
+    ]).then(([es, cs]) => {
+      const merged = es.map(e => {
+        const c = cs.find(course => course.id === e.courseId) || {};
+        return { ...e, ...c, studentEmail: e.studentEmail };
+      });
+      setEnrolled(merged);
+    }).catch(console.error);
   }, []);
 
   return (

@@ -9,52 +9,61 @@ function Login() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('student');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim()) {
       alert('Please enter an ID');
       return;
     }
     
-    // Check if there are any stored accounts
-    const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
-    const account = accounts.find(acc => acc.email === email && acc.password === password);
-    
-    if (account) {
-      localStorage.setItem('user', JSON.stringify({ email: account.email, role: account.role }));
-      navigate(account.role === 'admin' ? "/admin" : "/student");
-    } else if (accounts.length === 0 && email.toLowerCase().includes('admin')) {
-      // Fallback demo mode if no accounts exist
-      const detectedRole = 'admin';
-      localStorage.setItem('user', JSON.stringify({ email, role: detectedRole }));
-      navigate("/admin");
-    } else if (accounts.length === 0) {
-      // Fallback demo mode if no accounts exist
-      const detectedRole = 'student';
-      localStorage.setItem('user', JSON.stringify({ email, role: detectedRole }));
-      navigate("/student");
-    } else {
-      alert('Invalid email or password');
+    try {
+      const response = await fetch('http://localhost:8080/api/accounts/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Still keep basic user info in local storage for frontend routing logic (like layouts)
+        localStorage.setItem('user', JSON.stringify({ email: data.email, role: data.role }));
+        navigate(data.role === 'admin' ? "/admin" : "/student");
+      } else {
+        alert('Invalid email or password. Are you registered via the backend?');
+      }
+    } catch (err) {
+      alert('Error connecting to backend: ' + err.message);
     }
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!email.trim() || !password.trim()) {
       alert('Please fill in all fields');
       return;
     }
     
-    const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
-    if (accounts.find(acc => acc.email === email)) {
-      alert('Account already exists with this email');
-      return;
-    }
+    try {
+      const response = await fetch('http://localhost:8080/api/accounts/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // We ensure we send email, password, and role to match Account entity
+        body: JSON.stringify({ email, password, role })
+      });
 
-    accounts.push({ email, password, role });
-    localStorage.setItem('accounts', JSON.stringify(accounts));
-    alert('Account created successfully! You can now log in.');
-    setIsSignup(false);
-    setEmail('');
-    setPassword('');
+      if (response.ok) {
+        alert('Account created successfully! You can now log in.');
+        setIsSignup(false);
+        setEmail('');
+        setPassword('');
+      } else {
+        alert('Account already exists with this email');
+      }
+    } catch (err) {
+      alert('Error connecting to backend: ' + err.message);
+    }
   };
 
   return (
@@ -142,12 +151,6 @@ function Login() {
                 >
                   Create new account
                 </button>
-              </p>
-              
-              <p style={{fontSize: '12px', color: '#666', marginTop: '20px'}}>
-                <strong>Test IDs:</strong><br/>
-                Type "admin" for Admin role<br/>
-                Type anything else for Student role
               </p>
             </>
           )}

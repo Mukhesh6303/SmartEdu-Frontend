@@ -6,14 +6,17 @@ export const ManageCourses = () => {
   const [courses, setCourses] = useState([]);
 
   useEffect(() => {
-    setCourses(JSON.parse(localStorage.getItem('courses') || '[]'));
+    fetch('http://localhost:8080/api/courses')
+      .then(res => res.json())
+      .then(data => setCourses(data))
+      .catch(err => console.error(err));
   }, []);
 
   const deleteCourse = (id) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      const updated = courses.filter(c => c.id !== id);
-      localStorage.setItem('courses', JSON.stringify(updated));
-      setCourses(updated);
+      fetch(`http://localhost:8080/api/courses/${id}`, { method: 'DELETE' })
+        .then(() => setCourses(courses.filter(c => c.id !== id)))
+        .catch(err => console.error(err));
     }
   };
 

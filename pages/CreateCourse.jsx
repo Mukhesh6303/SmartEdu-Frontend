@@ -16,14 +16,19 @@ export default function CreateCourse() {
       alert('Please fill in all fields');
       return;
     }
-    const courses = JSON.parse(localStorage.getItem('courses') || '[]');
-    localStorage.setItem(
-      'courses',
-      JSON.stringify([...courses, { ...course, id: Date.now() }])
-    );
-    alert('Course Created Successfully');
-    setCourse({ name: '', code: '', description: '', duration: '' });
-    navigate('/admin');
+    
+    fetch('http://localhost:8080/api/courses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(course)
+    })
+    .then(res => res.json())
+    .then(() => {
+      alert('Course Created Successfully');
+      setCourse({ name: '', code: '', description: '', duration: '' });
+      navigate('/admin/manage-courses');
+    })
+    .catch(err => console.error(err));
   };
 
   return (

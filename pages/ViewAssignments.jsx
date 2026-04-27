@@ -8,19 +8,31 @@ export default function ViewAssignments() {
   const [viewingFiles, setViewingFiles] = useState(null);
 
   useEffect(() => {
-    setSubmissions(JSON.parse(localStorage.getItem('submissions') || '[]'));
+    fetch('http://localhost:8080/api/submissions')
+      .then(r => r.json())
+      .then(data => {
+        const parsed = data.map(s => ({ ...s, files: s.files ? JSON.parse(s.files) : [] }));
+        setSubmissions(parsed);
+      }).catch(console.error);
   }, []);
 
   const handleUpdateMarks = (id, marks, feedback) => {
-    const updated = submissions.map(sub =>
-      sub.id === id ? { ...sub, marks: parseInt(marks) || 0, feedback: feedback || '' } : sub
-    );
-    localStorage.setItem('submissions', JSON.stringify(updated));
-    setSubmissions(updated);
-    setEditingId(null);
-    setMarksInput({});
-    setFeedbackInput({});
-    alert('Marks and feedback updated successfully!');
+    fetch(`http://localhost:8080/api/submissions/${id}/grade`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ marks: parseInt(marks) || 0, feedback: feedback || '' })
+    }).then(r => r.json())
+      .then(data => {
+        const updated = submissions.map(sub => sub.id === id ? { ...sub, marks: data.marks, feedback: data.feedback } : sub);
+        setSubmissions(updated);
+        setEditingId(null);
+        setMarksInput({});
+        setFeedbackInput({});
+        alert('Marks and feedback updated successfully!');
+      }).catch(err => {
+        console.error(err);
+        alert('Failed to update marks');
+      });
   };
 
   const handleEdit = (id, currentMarks, currentFeedback) => {
@@ -187,6 +199,9 @@ export default function ViewAssignments() {
                           <span className='file-type'>{file.type === 'application/pdf' ? 'PDF Document' : 'JPG Image'}</span>
                           <span className='file-size-modal'>{formatFileSize(file.size)}</span>
                         </div>
+                        {file.data && (
+                           <a href={file.data} download={file.name} className="btn-download" style={{marginTop:'8px',display:'inline-block',color:'#3b82f6',border:'1px solid #3b82f6',padding:'4px 12px',borderRadius:'4px',textDecoration:'none',fontSize:'14px'}}>📥 Download</a>
+                        )}
                       </div>
                     </div>
                   ))}

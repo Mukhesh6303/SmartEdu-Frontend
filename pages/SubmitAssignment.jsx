@@ -16,9 +16,39 @@ export default function SubmitAssignment() {
   const [showEditFilesModal, setShowEditFilesModal] = useState(false);
 
   useEffect(() => {
-    setAssignments(JSON.parse(localStorage.getItem('assignments') || '[]'));
-    setEnrolled(JSON.parse(localStorage.getItem('enrolled') || '[]'));
-    setSubmissions(JSON.parse(localStorage.getItem('submissions') || '[]'));
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.email) return;
+
+    Promise.all([
+      fetch('http://localhost:8080/api/assignments').then(r => r.json()),
+      fetch(`http://localhost:8080/api/enrollments/student/${user.email}`).then(r => r.json()),
+      fetch('http://localhost:8080/api/courses').then(r => r.json()),
+      fetch(`http://localhost:8080/api/submissions/student/${user.email}`).then(r => r.json())
+    ]).then(([as, es, cs, ss]) => {
+      const parsedAssignments = as.map(a => {
+        let attachmentsArr = [];
+        try {
+          if (a.attachments) attachmentsArr = typeof a.attachments === 'string' ? JSON.parse(a.attachments) : a.attachments;
+        } catch(e) {}
+        return { ...a, attachments: attachmentsArr };
+      });
+      setAssignments(parsedAssignments);
+
+      const enrolledObjects = cs.filter(c => es.find(e => e.courseId === c.id));
+      setEnrolled(enrolledObjects);
+      
+      const parsedSubmissions = ss.map(s => {
+        let filesArr = [];
+        try { filesArr = s.files ? JSON.parse(s.files) : []; } catch(e) {}
+        return {
+          ...s,
+          submissionId: s.id,
+          id: s.assignmentId,
+          files: filesArr
+        };
+      });
+      setSubmissions(parsedSubmissions);
+    }).catch(console.error);
   }, [refreshKey]);
 
   const openSubmitModal = (assignment) => {
@@ -94,32 +124,65 @@ export default function SubmitAssignment() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!selectedAssignment) return;
 
-    const alreadySubmitted = submissions.find(s => s.id === selectedAssignment.id);
+    const alreadySubmitted = submissions.find(s => s.assignmentId === selectedAssignment.id || s.id === selectedAssignment.id);
     if (alreadySubmitted) {
       alert('You have already submitted this assignment');
       closeSubmitModal();
       return;
     }
 
-    const newSubmission = {
-      ...selectedAssignment,
-      submissionId: Date.now(),
-      submittedAt: new Date().toISOString(),
-      marks: null,
-      studentName: JSON.parse(localStorage.getItem('user'))?.email || 'Student',
-      submissionNotes: '',
-      files: selectedFiles.map(f => ({ name: f.name, size: f.size, type: f.type }))
-    };
-
-    const updatedSubmissions = [...submissions, newSubmission];
-    localStorage.setItem('submissions', JSON.stringify(updatedSubmissions));
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    alert('Assignment Submitted Successfully!');
-    closeSubmitModal();
-    setRefreshKey(refreshKey + 1);
+    // Convert native files to base64 before sending to backend
+    const filePromises = selectedFiles.map(file => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          data: reader.result
+        });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+
+    try {
+      const fileData = await Promise.all(filePromises);
+
+      const newSubmission = {
+        assignmentId: selectedAssignment.id,
+        studentEmail: user.email,
+        studentName: user.email,
+        title: selectedAssignment.title,
+        course: selectedAssignment.course,
+        maxMarks: selectedAssignment.maxMarks,
+        submittedAt: new Date().toISOString(),
+        submissionNotes: '',
+        files: JSON.stringify(fileData)
+      };
+
+      const res = await fetch('http://localhost:8080/api/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSubmission)
+      });
+      
+      if(res.ok) {
+        alert('Assignment Submitted Successfully!');
+        closeSubmitModal();
+        setRefreshKey(k => k + 1);
+      } else {
+        alert('Failed to submit');
+      }
+    } catch(err) {
+      console.error(err);
+      alert('Failed to submit: ' + err.message);
+    }
   };
 
   const startEdit = (submission) => {
@@ -163,7 +226,7 @@ export default function SubmitAssignment() {
       return true;
     });
 
-    const newFileObjects = validFiles.map(f => ({ name: f.name, size: f.size, type: f.type }));
+    const newFileObjects = validFiles.map(f => ({ name: f.name, size: f.size, type: f.type, data: f.data }));
     setEditFiles([...editFiles, ...newFileObjects]);
   };
 
@@ -258,6 +321,9 @@ export default function SubmitAssignment() {
                                     </span>
                                     <span className='attachment-name'>{file.name}</span>
                                     <span className='attachment-size'>({formatFileSize(file.size)})</span>
+                                    {file.data && (
+                                      <a href={file.data} download={file.name} className="download-btn" style={{marginLeft:'auto',color:'#3b82f6',textDecoration:'none',fontWeight:'500'}}>📥 Download</a>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -271,7 +337,7 @@ export default function SubmitAssignment() {
                           )}
                           <div className='assignment-meta'>
                             <span className='meta-item'>
-                              📅 Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                              📅 Due: {assignment.dueDate && !isNaN(new Date(assignment.dueDate).getTime()) ? new Date(assignment.dueDate).toLocaleDateString() : 'No due date'}
                             </span>
                             <span className='meta-item'>
                               ⭐ Max Marks: {assignment.maxMarks}
@@ -362,6 +428,9 @@ export default function SubmitAssignment() {
                                 </span>
                                 <span className='file-name-small'>{file.name}</span>
                                 <span className='file-size-small'>({formatFileSize(file.size)})</span>
+                                {file.data && (
+                                  <a href={file.data} download={file.name} className="download-btn-small" style={{marginLeft:'auto',color:'#3b82f6',textDecoration:'none',fontWeight:'500',padding:'0 6px'}}>📥</a>
+                                )}
                               </div>
                             ))}
                           </div>

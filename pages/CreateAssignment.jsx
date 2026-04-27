@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function CreateAssignment() {
@@ -12,7 +12,14 @@ export default function CreateAssignment() {
   });
   const [attachedFiles, setAttachedFiles] = useState([]);
 
-  const courses = JSON.parse(localStorage.getItem('courses') || '[]');
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:8080/api/courses')
+      .then(res => res.json())
+      .then(data => setCourses(data))
+      .catch(console.error);
+  }, []);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -80,15 +87,31 @@ export default function CreateAssignment() {
 
     const fileData = await Promise.all(filePromises);
 
-    const assignments = JSON.parse(localStorage.getItem('assignments') || '[]');
-    localStorage.setItem(
-      'assignments',
-      JSON.stringify([...assignments, { ...assignment, id: Date.now(), attachments: fileData }])
-    );
-    alert('Assignment Created Successfully!');
-    setAssignment({ title: '', course: '', description: '', dueDate: '', maxMarks: '' });
-    setAttachedFiles([]);
-    navigate('/admin');
+    const backendPayload = {
+      ...assignment,
+      attachments: JSON.stringify(fileData)
+    };
+
+    try {
+      const response = await fetch('http://localhost:8080/api/assignments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(backendPayload)
+      });
+      
+      if (response.ok) {
+        alert('Assignment Created Successfully!');
+        setAssignment({ title: '', course: '', description: '', dueDate: '', maxMarks: '' });
+        setAttachedFiles([]);
+        navigate('/admin/manage-assignments');
+      } else {
+        alert('Failed to create assignment');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
   };
 
   return (

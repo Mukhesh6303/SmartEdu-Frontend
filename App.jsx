@@ -16,21 +16,7 @@ import SubmitAssignment from './pages/SubmitAssignment';
 import StudentGrades from './pages/StudentGrades';
 
 function App(){
-  useEffect(() => {
-    // Clear all app data on first load for fresh deployment
-    const isFirstLoad = !localStorage.getItem('_appInitialized');
-    if (isFirstLoad) {
-      // Clear test data
-      localStorage.removeItem('courses');
-      localStorage.removeItem('assignments');
-      localStorage.removeItem('enrolled');
-      localStorage.removeItem('submissions');
-      localStorage.removeItem('user');
-      
-      // Mark app as initialized
-      localStorage.setItem('_appInitialized', 'true');
-    }
-  }, []);
+    // Backend integration active: no longer clearing local storage on start
 
   return(
     <BrowserRouter>

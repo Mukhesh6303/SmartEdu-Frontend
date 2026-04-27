@@ -6,14 +6,16 @@ export const ManageAssignments = () => {
   const [assignments, setAssignments] = useState([]);
 
   useEffect(() => {
-    setAssignments(JSON.parse(localStorage.getItem('assignments') || '[]'));
+    fetch('http://localhost:8080/api/assignments')
+      .then(res => res.json())
+      .then(data => setAssignments(data))
+      .catch(err => console.error(err));
   }, []);
 
   const deleteAssignment = (id) => {
     if (window.confirm('Are you sure you want to delete this assignment?')) {
-      const updated = assignments.filter(a => a.id !== id);
-      localStorage.setItem('assignments', JSON.stringify(updated));
-      setAssignments(updated);
+      fetch(`http://localhost:8080/api/assignments/${id}`, { method: 'DELETE' })
+        .then(() => setAssignments(assignments.filter(a => a.id !== id)));
     }
   };
 

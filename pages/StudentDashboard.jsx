@@ -1,12 +1,31 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EventsCalendar } from '../components/EventsCalendar';
 
 export const StudentDashboard = () => {
   const navigate = useNavigate();
-  const enrolled = JSON.parse(localStorage.getItem('enrolled') || '[]');
-  const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
-  const courses = JSON.parse(localStorage.getItem('courses') || '[]');
-  const allAssignments = JSON.parse(localStorage.getItem('assignments') || '[]');
+  const [enrolled, setEnrolled] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [allAssignments, setAllAssignments] = useState([]);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.email) return;
+    
+    Promise.all([
+      fetch(`http://localhost:8080/api/enrollments/student/${user.email}`).then(r => r.json()),
+      fetch(`http://localhost:8080/api/submissions/student/${user.email}`).then(r => r.json()),
+      fetch('http://localhost:8080/api/courses').then(r => r.json()),
+      fetch('http://localhost:8080/api/assignments').then(r => r.json())
+    ]).then(([es, ss, cs, as]) => {
+      const enrolledObjects = cs.filter(c => es.find(e => e.courseId === c.id));
+      setEnrolled(enrolledObjects);
+      setSubmissions(ss);
+      setCourses(cs);
+      setAllAssignments(as);
+    }).catch(console.error);
+  }, []);
 
   const getCourseDueDate = (courseId) => {
     const course = courses.find(c => c.id.toString() === courseId);
@@ -15,7 +34,7 @@ export const StudentDashboard = () => {
 
   const getPendingAssignments = () => {
     const enrolledCourseNames = enrolled.map(c => c.name || c.title);
-    const submittedAssignmentIds = submissions.map(s => s.id);
+    const submittedAssignmentIds = submissions.map(s => s.assignmentId || s.id);
     
     return allAssignments.filter(assignment => 
       enrolledCourseNames.includes(assignment.course) && 
@@ -24,7 +43,17 @@ export const StudentDashboard = () => {
   };
 
   const pendingAssignments = getPendingAssignments();
-  const isOverdue = (dueDate) => new Date(dueDate) < new Date();
+  const isOverdue = (dueDate) => {
+    if (!dueDate) return false;
+    const d = new Date(dueDate);
+    return !isNaN(d.getTime()) && d < new Date();
+  };
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No due date';
+    const d = new Date(dateString);
+    return isNaN(d.getTime()) ? 'No due date' : d.toLocaleDateString();
+  };
 
   return (
     <div className='student-dashboard-container'>
@@ -169,7 +198,7 @@ export const StudentDashboard = () => {
                     <p className='assignment-course'>{assignment.course}</p>
                     <div className='assignment-summary-meta'>
                       <span className={`due-date ${isOverdue(assignment.dueDate) ? 'overdue-text' : ''}`}>
-                        Due: {new Date(assignment.dueDate).toLocaleDateString()}
+                        Due: {formatDate(assignment.dueDate)}
                       </span>
                       <span className='max-marks'>Max Marks: {assignment.maxMarks}</span>
                     </div>

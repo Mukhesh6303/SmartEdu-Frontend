@@ -1,11 +1,24 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const AdminDashboard = () => {
   const navigate = useNavigate();
-  const courses = JSON.parse(localStorage.getItem('courses') || '[]');
-  const assignments = JSON.parse(localStorage.getItem('assignments') || '[]');
-  const enrolled = JSON.parse(localStorage.getItem('enrolled') || '[]');
-  const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+  const [courses, setCourses] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [enrolled, setEnrolled] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('http://localhost:8080/api/courses').then(r => r.json()),
+      fetch('http://localhost:8080/api/assignments').then(r => r.json()),
+      fetch('http://localhost:8080/api/enrollments').then(r => r.json()),
+      fetch('http://localhost:8080/api/submissions').then(r => r.json())
+    ]).then(([cs, as, es, ss]) => {
+      setCourses(cs); setAssignments(as); setEnrolled(es); setSubmissions(ss);
+    }).catch(console.error);
+  }, []);
+
   const pendingSubmissions = submissions.filter(
     (submission) => submission.marks === null || submission.marks === undefined
   );

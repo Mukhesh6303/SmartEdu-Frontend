@@ -4,7 +4,13 @@ export default function StudentGrades() {
   const [submissions, setSubmissions] = useState([]);
 
   useEffect(() => {
-    setSubmissions(JSON.parse(localStorage.getItem('submissions') || '[]'));
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if(user.email) {
+      fetch(`http://localhost:8080/api/submissions/student/${user.email}`)
+        .then(r => r.json())
+        .then(setSubmissions)
+        .catch(console.error);
+    }
   }, []);
 
   const gradedSubmissions = submissions.filter(s => s.marks !== null);

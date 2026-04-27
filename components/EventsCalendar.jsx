@@ -10,11 +10,19 @@ export const EventsCalendar = () => {
   const [daysInMonth, setDaysInMonth] = useState([]);
 
   useEffect(() => {
-    const allAssignments = JSON.parse(localStorage.getItem('assignments') || '[]');
-    const enrolledCourses = JSON.parse(localStorage.getItem('enrolled') || '[]');
-    setAssignments(allAssignments);
-    setEnrolled(enrolledCourses);
-    generateCalendarDays();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.email) return;
+
+    Promise.all([
+      fetch('http://localhost:8080/api/assignments').then(r => r.json()),
+      fetch(`http://localhost:8080/api/enrollments/student/${user.email}`).then(r => r.json()),
+      fetch('http://localhost:8080/api/courses').then(r => r.json())
+    ]).then(([as, es, cs]) => {
+      setAssignments(as);
+      const enrolledObjects = cs.filter(c => es.find(e => e.courseId === c.id));
+      setEnrolled(enrolledObjects);
+      generateCalendarDays();
+    }).catch(console.error);
   }, [currentDate]);
 
   const generateCalendarDays = () => {
@@ -50,11 +58,19 @@ export const EventsCalendar = () => {
     const dateStr = `${year}-${month}-${dayStr}`;
 
     return assignments.filter(assignment => {
-      const dueDate = new Date(assignment.dueDate).toISOString().split('T')[0];
-      if (selectedCourse === 'all') {
-        return dueDate === dateStr;
+      if (!assignment || !assignment.dueDate) return false;
+      try {
+        const dateObj = new Date(assignment.dueDate);
+        if (isNaN(dateObj.getTime())) return false;
+        
+        const dueDate = dateObj.toISOString().split('T')[0];
+        if (selectedCourse === 'all') {
+          return dueDate === dateStr;
+        }
+        return dueDate === dateStr && assignment.course === selectedCourse;
+      } catch (err) {
+        return false;
       }
-      return dueDate === dateStr && assignment.course === selectedCourse;
     });
   };
 
