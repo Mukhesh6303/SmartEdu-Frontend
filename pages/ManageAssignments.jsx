@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const ManageAssignments = () => {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/assignments')
+    fetch(`${API_URL}/api/assignments`)
       .then(res => res.json())
       .then(data => setAssignments(data))
       .catch(err => console.error(err));
@@ -14,7 +16,7 @@ export const ManageAssignments = () => {
 
   const deleteAssignment = (id) => {
     if (window.confirm('Are you sure you want to delete this assignment?')) {
-      fetch(`http://localhost:8080/api/assignments/${id}`, { method: 'DELETE' })
+      fetch(`${API_URL}/api/assignments/${id}`, { method: 'DELETE' })
         .then(() => setAssignments(assignments.filter(a => a.id !== id)));
     }
   };

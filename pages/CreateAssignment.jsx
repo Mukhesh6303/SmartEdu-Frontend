@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function CreateAssignment() {
   const navigate = useNavigate();
   const [assignment, setAssignment] = useState({
@@ -15,7 +17,7 @@ export default function CreateAssignment() {
   const [courses, setCourses] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/courses')
+    fetch(`${API_URL}/api/courses`)
       .then(res => res.json())
       .then(data => setCourses(data))
       .catch(console.error);
@@ -93,7 +95,7 @@ export default function CreateAssignment() {
     };
 
     try {
-      const response = await fetch('http://localhost:8080/api/assignments', {
+      const response = await fetch(`${API_URL}/api/assignments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function SubmitAssignment() {
   const [assignments, setAssignments] = useState([]);
   const [enrolled, setEnrolled] = useState([]);
@@ -20,10 +22,10 @@ export default function SubmitAssignment() {
     if (!user.email) return;
 
     Promise.all([
-      fetch('http://localhost:8080/api/assignments').then(r => r.json()),
-      fetch(`http://localhost:8080/api/enrollments/student/${user.email}`).then(r => r.json()),
-      fetch('http://localhost:8080/api/courses').then(r => r.json()),
-      fetch(`http://localhost:8080/api/submissions/student/${user.email}`).then(r => r.json())
+      fetch(`${API_URL}/api/assignments`).then(r => r.json()),
+      fetch(`${API_URL}/api/enrollments/student/${user.email}`).then(r => r.json()),
+      fetch(`${API_URL}/api/courses`).then(r => r.json()),
+      fetch(`${API_URL}/api/submissions/student/${user.email}`).then(r => r.json())
     ]).then(([as, es, cs, ss]) => {
       const parsedAssignments = as.map(a => {
         let attachmentsArr = [];
@@ -166,7 +168,7 @@ export default function SubmitAssignment() {
         files: JSON.stringify(fileData)
       };
 
-      const res = await fetch('http://localhost:8080/api/submissions', {
+      const res = await fetch(`${API_URL}/api/submissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSubmission)

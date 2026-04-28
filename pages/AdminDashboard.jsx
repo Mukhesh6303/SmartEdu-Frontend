@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
@@ -10,10 +12,10 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:8080/api/courses').then(r => r.json()),
-      fetch('http://localhost:8080/api/assignments').then(r => r.json()),
-      fetch('http://localhost:8080/api/enrollments').then(r => r.json()),
-      fetch('http://localhost:8080/api/submissions').then(r => r.json())
+      fetch(`${API_URL}/api/courses`).then(r => r.json()),
+      fetch(`${API_URL}/api/assignments`).then(r => r.json()),
+      fetch(`${API_URL}/api/enrollments`).then(r => r.json()),
+      fetch(`${API_URL}/api/submissions`).then(r => r.json())
     ]).then(([cs, as, es, ss]) => {
       setCourses(cs); setAssignments(as); setEnrolled(es); setSubmissions(ss);
     }).catch(console.error);

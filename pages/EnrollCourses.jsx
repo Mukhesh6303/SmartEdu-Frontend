@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const EnrollCourses = () => {
   const [courses, setCourses] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/courses')
+    fetch(`${API_URL}/api/courses`)
       .then(res => res.json())
       .then(data => setCourses(data))
       .catch(console.error);
       
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.email) {
-      fetch(`http://localhost:8080/api/enrollments/student/${user.email}`)
+      fetch(`${API_URL}/api/enrollments/student/${user.email}`)
         .then(res => res.json())
         .then(data => setEnrollments(data))
         .catch(console.error);
@@ -24,7 +26,7 @@ export const EnrollCourses = () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (!user.email) return alert('Please login first');
     
-    fetch('http://localhost:8080/api/enrollments', {
+    fetch(`${API_URL}/api/enrollments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ studentEmail: user.email, courseId: course.id })

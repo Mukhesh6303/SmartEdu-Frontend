@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function CreateCourse() {
   const navigate = useNavigate();
   const [course, setCourse] = useState({
@@ -17,7 +19,7 @@ export default function CreateCourse() {
       return;
     }
     
-    fetch('http://localhost:8080/api/courses', {
+    fetch(`${API_URL}/api/courses`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(course)

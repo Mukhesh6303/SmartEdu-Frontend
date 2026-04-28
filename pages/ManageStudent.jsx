@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function ManageStudents() {
   const [enrolled, setEnrolled] = useState([]);
 
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:8080/api/enrollments').then(r => r.json()),
-      fetch('http://localhost:8080/api/courses').then(r => r.json())
+      fetch(`${API_URL}/api/enrollments`).then(r => r.json()),
+      fetch(`${API_URL}/api/courses`).then(r => r.json())
     ]).then(([es, cs]) => {
       const merged = es.map(e => {
         const c = cs.find(course => course.id === e.courseId) || {};

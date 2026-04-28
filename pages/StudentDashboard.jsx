@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EventsCalendar } from '../components/EventsCalendar';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const StudentDashboard = () => {
   const navigate = useNavigate();
   const [enrolled, setEnrolled] = useState([]);
@@ -14,10 +16,10 @@ export const StudentDashboard = () => {
     if (!user.email) return;
     
     Promise.all([
-      fetch(`http://localhost:8080/api/enrollments/student/${user.email}`).then(r => r.json()),
-      fetch(`http://localhost:8080/api/submissions/student/${user.email}`).then(r => r.json()),
-      fetch('http://localhost:8080/api/courses').then(r => r.json()),
-      fetch('http://localhost:8080/api/assignments').then(r => r.json())
+      fetch(`${API_URL}/api/enrollments/student/${user.email}`).then(r => r.json()),
+      fetch(`${API_URL}/api/submissions/student/${user.email}`).then(r => r.json()),
+      fetch(`${API_URL}/api/courses`).then(r => r.json()),
+      fetch(`${API_URL}/api/assignments`).then(r => r.json())
     ]).then(([es, ss, cs, as]) => {
       const enrolledObjects = cs.filter(c => es.find(e => e.courseId === c.id));
       setEnrolled(enrolledObjects);

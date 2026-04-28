@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function StudentGrades() {
   const [submissions, setSubmissions] = useState([]);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if(user.email) {
-      fetch(`http://localhost:8080/api/submissions/student/${user.email}`)
+      fetch(`${API_URL}/api/submissions/student/${user.email}`)
         .then(r => r.json())
         .then(setSubmissions)
         .catch(console.error);

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const ManageCourses = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/courses')
+    fetch(`${API_URL}/api/courses`)
       .then(res => res.json())
       .then(data => setCourses(data))
       .catch(err => console.error(err));
@@ -14,7 +16,7 @@ export const ManageCourses = () => {
 
   const deleteCourse = (id) => {
     if (window.confirm('Are you sure you want to delete this course?')) {
-      fetch(`http://localhost:8080/api/courses/${id}`, { method: 'DELETE' })
+      fetch(`${API_URL}/api/courses/${id}`, { method: 'DELETE' })
         .then(() => setCourses(courses.filter(c => c.id !== id)))
         .catch(err => console.error(err));
     }

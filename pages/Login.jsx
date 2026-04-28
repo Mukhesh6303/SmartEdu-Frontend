@@ -2,6 +2,8 @@ import "./Login.css";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function Login() {
   const navigate = useNavigate();
   const [isSignup, setIsSignup] = useState(false);
@@ -16,7 +18,7 @@ function Login() {
     }
     
     try {
-      const response = await fetch('http://localhost:8080/api/accounts/login', {
+      const response = await fetch(`${API_URL}/api/accounts/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -44,7 +46,7 @@ function Login() {
     }
     
     try {
-      const response = await fetch('http://localhost:8080/api/accounts/register', {
+      const response = await fetch(`${API_URL}/api/accounts/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

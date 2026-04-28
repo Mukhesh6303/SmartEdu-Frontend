@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function ViewAssignments() {
   const [submissions, setSubmissions] = useState([]);
   const [editingId, setEditingId] = useState(null);
@@ -8,7 +10,7 @@ export default function ViewAssignments() {
   const [viewingFiles, setViewingFiles] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/submissions')
+    fetch(`${API_URL}/api/submissions`)
       .then(r => r.json())
       .then(data => {
         const parsed = data.map(s => ({ ...s, files: s.files ? JSON.parse(s.files) : [] }));
@@ -17,7 +19,7 @@ export default function ViewAssignments() {
   }, []);
 
   const handleUpdateMarks = (id, marks, feedback) => {
-    fetch(`http://localhost:8080/api/submissions/${id}/grade`, {
+    fetch(`${API_URL}/api/submissions/${id}/grade`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ marks: parseInt(marks) || 0, feedback: feedback || '' })
